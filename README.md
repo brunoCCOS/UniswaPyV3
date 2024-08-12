@@ -42,6 +42,7 @@ Possible contributions are the following
 
 - New features like token naming, liquidity shares calculations, modifying price ranges on the fly, etc ...
 
+- Develop tests and documentation
 
 ## Credits and Disclaimers
 
