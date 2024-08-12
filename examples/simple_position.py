@@ -7,7 +7,7 @@ from uniswapyv3.pool import LiquidityPool
 pool = LiquidityPool(tick_space=10, fee=0.003, tick_size=1.01,initial_price=13)
 
 # Add the provider to the liquidity pool
-position = pool.open_position(10,15,100)
+position = pool.open_position(10,16,100)
 
 print(f'Lower tick {position.min_tick}, upper tick {position.max_tick}')
 # Print initial state of the pool

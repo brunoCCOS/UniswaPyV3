@@ -4,12 +4,12 @@ from uniswapyv3.pool import LiquidityPool
 # Assuming the classes LiquidityPool and LiquidityProvider have already been defined as provided
 
 # Create a liquidity pool with specified parameters
-pool = LiquidityPool(tick_space=10, fee=0.003, tick_size=1.01,initial_price=13)
+pool = LiquidityPool(tick_space=10, fee=0.003, tick_size=1.01,initial_price=30)
 
 # Add the provider to the liquidity pool
-position = pool.open_position(10,15,100)
+position = pool.open_position(13,17,100)
 
-position2 = pool.open_position(10,30,100)
+position2 = pool.open_position(13,30,100)
 
 print('--------------------------------')
 print(f'Initial price in pool: {pool.sqrt_price**2}\n')
@@ -26,7 +26,7 @@ print(f"Initial x y for provider 2: {position2.x, position2.y}")
 
 
 # Update the price in the pool to simulate market movement
-pool.update_price(new_price=30)
+pool.update_price(new_price=50)
 print('--------------------------------')
 print(f'New price in pool: {pool.sqrt_price**2} \n')
 # Calculate impermanent loss after the price update
