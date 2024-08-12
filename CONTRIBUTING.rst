@@ -15,7 +15,7 @@ Types of Contributions
 Report Bugs
 ~~~~~~~~~~~
 
-Report bugs at https://github.com/brunoCCOS/uniswapv3_emulator/issues.
+Report bugs at https://github.com/brunoCCOS/UniswaPyV3/issues.
 
 If you are reporting a bug, please include:
 
@@ -38,14 +38,14 @@ and "help wanted" is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-uniswapv3_emulator could always use more documentation, whether as part of the
-official uniswapv3_emulator docs, in docstrings, or even on the web in blog posts,
+UniswaPyV3 could always use more documentation, whether as part of the
+official UniswaPyV3 docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
-The best way to send feedback is to file an issue at https://github.com/brunoCCOS/uniswapv3_emulator/issues.
+The best way to send feedback is to file an issue at https://github.com/brunoCCOS/UniswaPyV3/issues.
 
 If you are proposing a feature:
 
@@ -57,17 +57,17 @@ If you are proposing a feature:
 Get Started!
 ------------
 
-Ready to contribute? Here's how to set up `uniswapv3_emulator` for local development.
+Ready to contribute? Here's how to set up `UniswaPyV3` for local development.
 
-1. Fork the `uniswapv3_emulator` repo on GitHub.
+1. Fork the `uniswapv3` repo on GitHub.
 2. Clone your fork locally::
 
-    $ git clone git@github.com:your_name_here/uniswapv3_emulator.git
+    $ git clone git@github.com:your_name_here/UniswaPyV3.git
 
 3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
 
-    $ mkvirtualenv uniswapv3_emulator
-    $ cd uniswapv3_emulator/
+    $ mkvirtualenv UniswaPyV3
+    $ cd UniswaPyV3/
     $ python setup.py develop
 
 4. Create a branch for local development::
@@ -104,7 +104,7 @@ Before you submit a pull request, check that it meets these guidelines:
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
 3. The pull request should work for Python 3.5, 3.6, 3.7 and 3.8, and for PyPy. Check
-   https://travis-ci.com/brunoCCOS/uniswapv3_emulator/pull_requests
+   https://travis-ci.com/brunoCCOS/UniswaPyV3/pull_requests
    and make sure that the tests pass for all supported Python versions.
 
 Tips
@@ -113,7 +113,7 @@ Tips
 To run a subset of tests::
 
 
-    $ python -m unittest tests.test_uniswapv3_emulator
+    $ python -m unittest tests.test_UniswaPyV3
 
 Deploying
 ---------
