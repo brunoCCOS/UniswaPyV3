@@ -175,5 +175,5 @@ class LiquidityPosition:
         self.min_tick: int = min_tick
         self.max_tick: int = max_tick
         # Update max and min range for the exaclty tick
-        self.max_range: int = self.pool.tick_size ** (max_tick + 1)
-        self.min_range: int = self.pool.tick_size ** min_tick
+        self.max_range = self.pool.tick_size ** (max_tick + 1)
+        self.min_range = self.pool.tick_size ** min_tick
