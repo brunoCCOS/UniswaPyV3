@@ -32,7 +32,7 @@ class LiquidityPosition:
         The maximum tick range for the position.
     """
 
-    def __init__(self, max_range: float, min_range: float, x: float, y: float, pool, liquidity: float = 100):
+    def __init__(self, max_range: float, min_range: float,pool, liquidity: float = 100):
         """
         Initialize a new LiquidityPosition.
 
@@ -51,16 +51,14 @@ class LiquidityPosition:
         liquidity : float, optional
             The amount of liquidity provided by the position (default is 100).
         """
+        self.pool = pool
         self.min_range: float = min_range
         self.max_range: float = max_range
-        self.fees: float = 0.0
-        self.current_value: float = 0.0
-        self.x: float = x
-        self.y: float = y
+        self.liquidity: float = liquidity
+        self.update_reserves()
         self.initial_x: float = self.x
         self.initial_y: float = self.y
-        self.liquidity: float = liquidity
-        self.pool = pool
+        self.fees: float = 0.0
 
     def update_reserves(self):
         """
@@ -113,7 +111,7 @@ class LiquidityPosition:
         self.update_reserves()
         current_value = self.calculate_value()
         hodl_value = self.calculate_initial_value()
-        return (current_value - hodl_value)
+        return (current_value - hodl_value) / hodl_value
 
     def check_tick_range(self, tick: int) -> bool:
         """

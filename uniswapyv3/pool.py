@@ -1,6 +1,7 @@
 import numpy as np
 from .position import LiquidityPosition
 from .utils import smallest_divisor
+import warnings
 
 class LiquidityPool:
     """
@@ -27,7 +28,8 @@ class LiquidityPool:
         self.sqrt_price: float = np.sqrt(initial_price)  # Current price level in the pool
         self.current_tick: int = self._price_to_tick(self.sqrt_price**2)  # Current tick in the pool
         self.liquidity = 0
-    def open_position(self, min_price: float, max_price: float, x: float) -> LiquidityPosition:
+
+    def open_position(self, min_price: float, max_price: float, V: float) -> LiquidityPosition:
         """
         Opens a new liquidity position within the specified price range.
 
@@ -39,15 +41,12 @@ class LiquidityPool:
         max_sqrt_price = np.sqrt(max_price)
         min_sqrt_price = np.sqrt(min_price)
 
-        liquidity = x * (1/self.sqrt_price - 1/max_sqrt_price)
-        y = liquidity * (self.sqrt_price - min_sqrt_price)
+        liquidity = V * ( 1 / (2 * self.sqrt_price - self.sqrt_price** 2 / max_sqrt_price  - min_sqrt_price)) # Using the relation V = x * S + y = L( 1/sqrt(S) - 1/sqrt(Su))S + L(sqrt(S) - sqrt(Sl))
 
         position: LiquidityPosition = LiquidityPosition(
             min_range=min_price,
             max_range=max_price,
             liquidity=liquidity,
-            x=x,
-            y=y,
             pool=self
         )
         self.add_position(position)
