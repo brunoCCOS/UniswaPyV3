@@ -91,6 +91,7 @@ class LiquidityPool:
 
         # Iterate through relevant ticks to update fees and trigger provider actions
         for tick in range(current_tick, new_tick, direction * self.tick_space):
+
             tick_idx: int = self._get_tick_index(tick)
             tick_liquidity: float = self.ticks_liquidity[tick_idx]
 
@@ -99,13 +100,13 @@ class LiquidityPool:
                 future_price = self._tick_to_price(current_tick)
                 delta: float = tick_liquidity * (1 / np.sqrt(future_price) - 1 / current_sqrt_price)
                 self.current_tick = current_tick = current_tick - self.tick_space
-                fees_paid = delta * current_sqrt_price**2 * self.fee
+                fees_paid = np.array([delta * self.fee,0])
             else:
                 # Amount of virtual token Y received for the price going from the current price to the right tick of the interval
                 self.current_tick = current_tick = current_tick + self.tick_space
                 future_price = self._tick_to_price(current_tick)
                 delta: float = tick_liquidity * (np.sqrt(future_price) - current_sqrt_price)
-                fees_paid = delta * self.fee
+                fees_paid = np.array([0,delta * self.fee])
 
             self._distribute_fees(tick, fees_paid, tick_liquidity)
             current_sqrt_price = np.sqrt(future_price)
@@ -116,16 +117,16 @@ class LiquidityPool:
         if direction == -1:
             future_price = new_price
             delta: float = tick_liquidity / np.sqrt(future_price) - tick_liquidity / current_sqrt_price
-            fees_paid = delta * current_sqrt_price * self.fee
+            fees_paid = np.array([delta * self.fee,0])
         else:
             future_price = self._tick_to_price(current_tick)
             delta: float = tick_liquidity / np.sqrt(future_price) - tick_liquidity / current_sqrt_price
-            fees_paid = delta * self.fee
+            fees_paid = np.array([0,delta * self.fee])
 
         self._distribute_fees(self.current_tick, fees_paid, tick_liquidity)
         self.sqrt_price = np.sqrt(new_price)
 
-    def _distribute_fees(self, tick: int, fees_paid: float, tick_liquidity: float) -> None:
+    def _distribute_fees(self, tick: int, fees_paid: np.ndarray, tick_liquidity: float) -> None:
         """
         Distributes fees to the liquidity providers based on their participation in the pool.
 

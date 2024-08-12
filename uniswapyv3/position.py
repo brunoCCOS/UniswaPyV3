@@ -42,10 +42,6 @@ class LiquidityPosition:
             The maximum price range for the position.
         min_range : float
             The minimum price range for the position.
-        x : float
-            The initial reserve of token X.
-        y : float
-            The initial reserve of token Y.
         pool : LiquidityPool
             The Uniswap V3 pool associated with the position.
         liquidity : float, optional
@@ -58,7 +54,8 @@ class LiquidityPosition:
         self.update_reserves()
         self.initial_x: float = self.x
         self.initial_y: float = self.y
-        self.fees: float = 0.0
+        self.fees: np.ndarray = np.array([0.0,0.0])
+        self.fees_withdraw: float = 0.0
 
     def update_reserves(self):
         """
@@ -109,9 +106,25 @@ class LiquidityPosition:
             The impermanent loss (IL) of the position.
         """
         self.update_reserves()
-        current_value = self.calculate_value()
+        current_value: float = self.calculate_value()
+        hodl_value: float = self.calculate_initial_value()
+        self.il: float =  (current_value - hodl_value)
+        return self.il / hodl_value
+
+    def calculate_total_return(self) -> float:
+        """
+        Calculate the total return of the position.
+
+        Returns:
+        --------
+        float
+            The total return of the position.
+        """
+        self.calculate_il()
         hodl_value = self.calculate_initial_value()
-        return (current_value - hodl_value) / hodl_value
+        fees = self._withdraw_taxes()
+        return ( self.il + fees ) / hodl_value
+
 
     def check_tick_range(self, tick: int) -> bool:
         """
@@ -129,7 +142,7 @@ class LiquidityPosition:
         """
         return self.min_tick <= tick <= self.max_tick
 
-    def collect_taxes(self, fees_received: float):
+    def collect_taxes(self, fees_received: np.ndarray):
         """
         Collect fees received and add them to the accumulated fees.
 
@@ -139,6 +152,14 @@ class LiquidityPosition:
             The amount of fees received.
         """
         self.fees += fees_received
+
+    def _withdraw_taxes(self) -> float:
+        """
+        Withdraw taxes from the current pool.
+        """
+        self.fees_withdraw = self.fees[0] * self.pool.sqrt_price ** 2 + self.fees[1]
+        self.fees = np.array([0.0, 0.0])
+        return self.fees_withdraw
 
     def set_tick_range(self, min_tick: int, max_tick: int):
         """
@@ -153,3 +174,6 @@ class LiquidityPosition:
         """
         self.min_tick: int = min_tick
         self.max_tick: int = max_tick
+        # Update max and min range for the exaclty tick
+        self.max_range: int = self.pool.tick_size ** (max_tick + 1)
+        self.min_range: int = self.pool.tick_size ** min_tick
