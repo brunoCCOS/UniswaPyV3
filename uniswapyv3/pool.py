@@ -1,3 +1,4 @@
+from matplotlib.pyplot import tick_params
 import numpy as np
 from .position import LiquidityPosition
 from .utils import smallest_divisor
@@ -41,11 +42,13 @@ class LiquidityPool:
         max_sqrt_price = np.sqrt(max_price)
         min_sqrt_price = np.sqrt(min_price)
 
-        liquidity = V * ( 1 / (2 * self.sqrt_price - self.sqrt_price** 2 / max_sqrt_price  - min_sqrt_price)) # Using the relation V = x * S + y = L( 1/sqrt(S) - 1/sqrt(Su))S + L(sqrt(S) - sqrt(Sl))
+        liquidity = V * ( 1 / (2 * self.sqrt_price - (self.sqrt_price ** 2) / max_sqrt_price  - min_sqrt_price)) # Using the relation V = x * S + y = L( 1/sqrt(S) - 1/sqrt(Su))S + L(sqrt(S) - sqrt(Sl))
+        lower_tick, upper_tick = self._initialize_ticks(min_price, max_price)
+
 
         position: LiquidityPosition = LiquidityPosition(
-            min_range=min_price,
-            max_range=max_price,
+            min_tick=lower_tick,
+            max_tick=upper_tick,
             liquidity=liquidity,
             pool=self
         )
@@ -59,13 +62,9 @@ class LiquidityPool:
         :param position: The LiquidityPosition object to add to the pool.
         """
         self.providers.append(position)
-        lower_tick, upper_tick = self._initialize_ticks(position.min_range, position.max_range)
 
-        lower_idx: int = self._get_tick_index(lower_tick)
-        upper_idx: int = self._get_tick_index(upper_tick)
-
-        # Calculate liquidity contribution per tick from the provider's total liquidity
-        position.set_tick_range(lower_tick, upper_tick)
+        lower_idx: int = self._get_tick_index(position.min_tick)
+        upper_idx: int = self._get_tick_index(position.max_tick)
 
         self.ticks_liquidity[lower_idx:upper_idx + 1] += position.liquidity
         self.liquidity += position.liquidity
@@ -87,7 +86,7 @@ class LiquidityPool:
         elif new_tick < self.lower_tick:
             self._initialize_ticks(new_price, current_sqrt_price**2)
 
-        direction = 1 if new_tick > current_tick else -1
+        direction = 1 if new_price > current_sqrt_price**2 else -1
 
         # Iterate through relevant ticks to update fees and trigger provider actions
         for tick in range(current_tick, new_tick, direction * self.tick_space):
@@ -100,13 +99,14 @@ class LiquidityPool:
                 future_price = self._tick_to_price(current_tick)
                 delta: float = tick_liquidity * (1 / np.sqrt(future_price) - 1 / current_sqrt_price)
                 self.current_tick = current_tick = current_tick - self.tick_space
-                fees_paid = np.array([delta * self.fee,0])
+                fees_paid = np.array([delta / (1 - self.fee),0])
             else:
                 # Amount of virtual token Y received for the price going from the current price to the right tick of the interval
                 self.current_tick = current_tick = current_tick + self.tick_space
                 future_price = self._tick_to_price(current_tick)
                 delta: float = tick_liquidity * (np.sqrt(future_price) - current_sqrt_price)
-                fees_paid = np.array([0,delta * self.fee])
+                fees_paid = np.array([0,delta / (1 - self.fee)])
+
 
             self._distribute_fees(tick, fees_paid, tick_liquidity)
             current_sqrt_price = np.sqrt(future_price)
@@ -116,12 +116,12 @@ class LiquidityPool:
 
         if direction == -1:
             future_price = new_price
-            delta: float = tick_liquidity / np.sqrt(future_price) - tick_liquidity / current_sqrt_price
-            fees_paid = np.array([delta * self.fee,0])
+            delta: float = tick_liquidity * (1 / np.sqrt(future_price) - 1 / current_sqrt_price)
+            fees_paid = np.array([delta / (1 - self.fee),0])
         else:
-            future_price = self._tick_to_price(current_tick)
-            delta: float = tick_liquidity / np.sqrt(future_price) - tick_liquidity / current_sqrt_price
-            fees_paid = np.array([0,delta * self.fee])
+            future_price = new_price
+            delta: float = tick_liquidity * (np.sqrt(future_price) - current_sqrt_price)
+            fees_paid = np.array([0,delta / (1 - self.fee)])
 
         self._distribute_fees(self.current_tick, fees_paid, tick_liquidity)
         self.sqrt_price = np.sqrt(new_price)

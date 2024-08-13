@@ -1,13 +1,13 @@
 # Import necessary libraries
 from uniswapyv3.pool import LiquidityPool
-PRICES = (15,30,22,25)
+PRICES = (3001.32,3002.25,3002.31,2999.15)
 # Assuming the classes LiquidityPool and LiquidityProvider have already been defined as provided
 
 # Create a liquidity pool with specified parameters
-pool = LiquidityPool(tick_space=10, fee=0.003, tick_size=1.01,initial_price=13)
+pool = LiquidityPool(tick_space=10, fee=0.003, tick_size=1.0001,initial_price=2994)
 
 # Add the provider to the liquidity pool
-position = pool.open_position(10,22,100)
+position = pool.open_position(2800,3000,100)
 
 print(f'Lower tick {position.min_tick}, upper tick {position.max_tick}')
 print(f'Lower price {position.min_range}, upper price {position.max_range}')

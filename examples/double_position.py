@@ -26,7 +26,7 @@ print(f"Initial x y for provider 2: {position2.x, position2.y}")
 
 
 # Update the price in the pool to simulate market movement
-pool.update_price(new_price=30)
+pool.update_price(new_price=20)
 print('--------------------------------')
 print(f'New price in pool: {pool.sqrt_price**2} \n')
 # Calculate impermanent loss after the price update

@@ -32,7 +32,7 @@ class LiquidityPosition:
         The maximum tick range for the position.
     """
 
-    def __init__(self, max_range: float, min_range: float,pool, liquidity: float = 100):
+    def __init__(self, max_tick: int, min_tick: int,pool, liquidity: float = 100):
         """
         Initialize a new LiquidityPosition.
 
@@ -48,15 +48,16 @@ class LiquidityPosition:
             The amount of liquidity provided by the position (default is 100).
         """
         self.pool = pool
-        self.min_range: float = min_range
-        self.max_range: float = max_range
+        self.min_tick: int = min_tick
+        self.max_tick: int = max_tick
+        self._set_tick_range()
         self.liquidity: float = liquidity
         self.update_reserves()
         self.initial_x: float = self.x
         self.initial_y: float = self.y
         self.fees: np.ndarray = np.array([0.0,0.0])
         self.fees_withdraw: float = 0.0
-
+        self.il: float = 0.0
     def update_reserves(self):
         """
         Update the reserves of token X and Y based on the new price in the pool.
@@ -120,7 +121,6 @@ class LiquidityPosition:
         float
             The total return of the position.
         """
-        self.calculate_il()
         hodl_value = self.calculate_initial_value()
         fees = self._withdraw_taxes()
         return ( self.il + fees ) / hodl_value
@@ -157,11 +157,11 @@ class LiquidityPosition:
         """
         Withdraw taxes from the current pool.
         """
-        self.fees_withdraw = self.fees[0] * self.pool.sqrt_price ** 2 + self.fees[1]
+        self.fees_withdraw += self.fees[0] * (self.pool.sqrt_price ** 2) + self.fees[1]
         self.fees = np.array([0.0, 0.0])
         return self.fees_withdraw
 
-    def set_tick_range(self, min_tick: int, max_tick: int):
+    def _set_tick_range(self,):
         """
         Set the acceptable tick range for the position.
 
@@ -172,8 +172,6 @@ class LiquidityPosition:
         max_tick : int
             The maximum tick range.
         """
-        self.min_tick: int = min_tick
-        self.max_tick: int = max_tick
         # Update max and min range for the exaclty tick
-        self.max_range = self.pool.tick_size ** (max_tick + 1)
-        self.min_range = self.pool.tick_size ** min_tick
+        self.max_range = self.pool.tick_size ** (self.max_tick + 1)
+        self.min_range = self.pool.tick_size ** self.min_tick

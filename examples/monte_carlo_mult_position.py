@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from uniswapyv3.utils import generate_poisson_arrivals,simulate_stochastic_process
+from uniswapyv3.utils import generate_poisson_arrivals
 from uniswapyv3.pool import LiquidityPool
 
-NUM_SIMULATIONS = 2000
+NUM_SIMULATIONS = 3000
 
 # Initialize parameters
 INITIAL_PRICE = 3000
@@ -42,13 +42,13 @@ for _ in range(NUM_SIMULATIONS):
     pool = LiquidityPool(
         tick_space = 2,
         fee = 0.003,
-        tick_size = 1.01,
+        tick_size = 1.001,
         initial_price = INITIAL_PRICE,
     )
 
     # Add the provider to the liquidity pool
     positions = [
-            pool.open_position(*price_range,PORTFOLIO_VALUE) for price_range in PRICE_RANGES
+            pool.open_position(*price_range,V = PORTFOLIO_VALUE) for price_range in PRICE_RANGES
     ]
 
     for t in range(1, len(arrival_times)):
@@ -61,6 +61,7 @@ for _ in range(NUM_SIMULATIONS):
         impermanent_losses[key].append(positions[idx].calculate_il())
         total_return[key].append(positions[idx].calculate_total_return())
         fees_collected[key].append(positions[idx].fees_withdraw)
+
 
 # Set the style and plot as originally planned
 sns.set_theme(style="whitegrid")
