@@ -16,10 +16,9 @@ class LiquidityPool:
         :param tick_space: The spacing between ticks in the pool.
         :param fee: The transaction fee percentage.
         :param tick_size: The multiplicative factor between successive price ticks.
-        :param initial_liquidity: The initial total liquidity in the pool.
         :param initial_price: The initial price level in the pool.
         """
-        self.tick_size: float = tick_size  # Price multiplier per tick
+        self.sqrt_tick_size: float = np.sqrt(tick_size)  # Price multiplier per tick
         self.tick_space: int = tick_space
         self.fee: float = fee
         self.providers: list[LiquidityPosition] = []  # List to store liquidity providers
@@ -28,7 +27,7 @@ class LiquidityPool:
         self.ticks_liquidity: np.ndarray = np.zeros((self.upper_tick - self.lower_tick) // self.tick_space + 1)  # Array to store liquidity at each tick
         self.sqrt_price: float = np.sqrt(initial_price)  # Current price level in the pool
         self.current_tick: int = self._price_to_tick(self.sqrt_price**2)  # Current tick in the pool
-        self.liquidity = 0
+        self.liquidity:float = 0
 
     def open_position(self, min_price: float, max_price: float, V: float) -> LiquidityPosition:
         """
@@ -36,7 +35,7 @@ class LiquidityPool:
 
         :param min_price: The minimum price to offer resources.
         :param max_price: The maximum price to offer resources.
-        :param liquidity: The amount of liquidity to be provided.
+        :param V: The total value in terms of token y, of the resources provided.
         :return: The new open position object.
         """
         max_sqrt_price = np.sqrt(max_price)
@@ -96,35 +95,34 @@ class LiquidityPool:
 
             if direction == -1:
                 # Amount of virtual token X received for the price going from the current price to the left tick of the interval
-                future_price = self._tick_to_price(current_tick)
-                delta: float = tick_liquidity * (1 / np.sqrt(future_price) - 1 / current_sqrt_price)
+                future_price = self._tick_to_sqrt_price(current_tick)
+                delta: float = tick_liquidity * (1 / future_price - 1 / current_sqrt_price)
                 self.current_tick = current_tick = current_tick - self.tick_space
                 fees_paid = np.array([delta / (1 - self.fee),0])
             else:
                 # Amount of virtual token Y received for the price going from the current price to the right tick of the interval
                 self.current_tick = current_tick = current_tick + self.tick_space
-                future_price = self._tick_to_price(current_tick)
-                delta: float = tick_liquidity * (np.sqrt(future_price) - current_sqrt_price)
+                future_price = self._tick_to_sqrt_price(current_tick)
+                delta: float = tick_liquidity * (future_price - current_sqrt_price)
                 fees_paid = np.array([0,delta / (1 - self.fee)])
 
 
             self._distribute_fees(tick, fees_paid, tick_liquidity)
-            current_sqrt_price = np.sqrt(future_price)
+            current_sqrt_price = future_price
 
         current_idx: int = self._get_tick_index(current_tick)
         tick_liquidity: float = self.ticks_liquidity[current_idx]
+        future_price = np.sqrt(new_price)
 
         if direction == -1:
-            future_price = new_price
-            delta: float = tick_liquidity * (1 / np.sqrt(future_price) - 1 / current_sqrt_price)
+            delta: float = tick_liquidity * (1 / future_price - 1 / current_sqrt_price)
             fees_paid = np.array([delta / (1 - self.fee),0])
         else:
-            future_price = new_price
-            delta: float = tick_liquidity * (np.sqrt(future_price) - current_sqrt_price)
+            delta: float = tick_liquidity * (future_price - current_sqrt_price)
             fees_paid = np.array([0,delta / (1 - self.fee)])
 
         self._distribute_fees(self.current_tick, fees_paid, tick_liquidity)
-        self.sqrt_price = np.sqrt(new_price)
+        self.sqrt_price = future_price
 
     def _distribute_fees(self, tick: int, fees_paid: np.ndarray, tick_liquidity: float) -> None:
         """
@@ -178,14 +176,14 @@ class LiquidityPool:
 
         return lower_tick, upper_tick
 
-    def _tick_to_price(self, tick: int) -> float:
+    def _tick_to_sqrt_price(self, tick: int) -> float:
         """
         Converts a tick value to a price.
 
         :param tick: The tick to convert.
         :return: The price corresponding to the tick.
         """
-        return self.tick_size ** tick
+        return self.sqrt_tick_size ** tick
 
     def _price_to_tick(self, price: float) -> int:
         """
@@ -194,7 +192,7 @@ class LiquidityPool:
         :param price: The price to convert.
         :return: The nearest tick corresponding to the price.
         """
-        power_value = np.log(price) / np.log(self.tick_size)
+        power_value = np.log(price) / np.log(self.sqrt_tick_size) / 2
         return smallest_divisor(power_value, self.tick_space)
 
     def _get_tick_liquidity(self, tick: int) -> float:

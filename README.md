@@ -17,7 +17,77 @@ uniswaPyv3/utils.py contains some useful functions to perform simulations and ar
 
 Some examples of use are available in the examples folder. There are instructions on how to initialize and use the pool class and open positions. Also, a proper Monte Carlo simulation is implemented to compare different positions.
 
-### Potential applications
+This library provides functionality to simulate and manage liquidity positions in a Uniswap V3-like liquidity pool. Follow the steps below to use the library in your projects.
+
+### 1. Initialize a Liquidity Pool
+
+First, create an instance of the `LiquidityPool` class by providing the necessary parameters:
+
+```python
+from your_module import LiquidityPool
+
+# Initialize the pool with tick space, fee, and initial price
+pool = LiquidityPool(tick_space=60, fee=0.003, tick_size=1.0001, initial_price=3000)
+```
+
+### 2. Open a Liquidity Position
+You can open a liquidity position within a specific price range using the open_position method:
+
+```python
+# Open a new position in the pool
+position = pool.open_position(min_price=2500, max_price=3500, V=1000)
+
+```
+
+### 3. Update the Pool Price
+To update the price in the liquidity pool and distribute fees accordingly, use the update_price method:
+
+```python
+# Update the pool price
+pool.update_price(new_price=3100)
+```
+
+### 4. Manage and Retrieve Liquidity Position Data
+After opening a position, you can manage it and retrieve important data, such as current value, impermanent loss, and total return:
+
+```python
+# Update reserves based on the current price
+position.update_reserves()
+
+# Calculate the current value of the position
+current_value = position.calculate_value()
+
+# Calculate impermanent loss (IL)
+il = position.calculate_il()
+
+# Calculate total return, including fees
+total_return = position.calculate_total_return()
+```
+
+### 5. Collect Fees
+Fees accumulated during price updates can be collected using the collect_taxes method within the LiquidityPosition class:
+
+```python
+# Collect fees from the position
+position.collect_taxes(fees_received=np.array([10.0, 5.0]))
+```
+
+### 6. Additional Utilities
+The library also includes utilities for converting between prices and ticks, initializing ticks, and calculating liquidity at specific ticks. These can be used for more advanced operations within the liquidity pool:
+
+```python
+# Convert price to tick
+tick = pool._price_to_tick(price=3000)
+
+# Convert tick to price
+price = pool._tick_to_price(tick=100)
+
+# Get liquidity at a specific tick
+liquidity_at_tick = pool._get_tick_liquidity(tick=120)
+```
+
+
+## Potential applications
 
 - Simulate the perfomance of different price intervals
 

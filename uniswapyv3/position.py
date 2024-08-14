@@ -62,16 +62,16 @@ class LiquidityPosition:
         """
         Update the reserves of token X and Y based on the new price in the pool.
         """
-        new_price = self.pool.sqrt_price**2
+        new_price = self.pool.sqrt_price
         if new_price < self.min_range:
-            self.x = self.liquidity / np.sqrt(self.min_range) - self.liquidity / np.sqrt(self.max_range)
+            self.x = self.liquidity / self.min_range - self.liquidity / self.max_range
             self.y = 0
         elif new_price > self.max_range:
             self.x = 0
-            self.y = self.liquidity * np.sqrt(self.max_range) - self.liquidity * np.sqrt(self.min_range)
+            self.y = self.liquidity * self.max_range - self.liquidity * self.min_range
         else:
-            self.x = self.liquidity * (1 / np.sqrt(new_price) - 1 / np.sqrt(self.max_range))
-            self.y = self.liquidity * (np.sqrt(new_price) - np.sqrt(self.min_range))
+            self.x = self.liquidity * (1 / new_price - 1 / self.max_range)
+            self.y = self.liquidity * (new_price - self.min_range)
 
     def calculate_value(self) -> float:
         """
@@ -173,5 +173,5 @@ class LiquidityPosition:
             The maximum tick range.
         """
         # Update max and min range for the exaclty tick
-        self.max_range = self.pool.tick_size ** (self.max_tick + 1)
-        self.min_range = self.pool.tick_size ** self.min_tick
+        self.max_range = self.pool.sqrt_tick_size ** (self.max_tick + 1)
+        self.min_range = self.pool.sqrt_tick_size ** self.min_tick

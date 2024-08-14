@@ -3,8 +3,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from uniswapyv3.utils import generate_poisson_arrivals
 from uniswapyv3.pool import LiquidityPool
+# import pool
 
-NUM_SIMULATIONS = 3000
+
+NUM_SIMULATIONS = 1000
 
 # Initialize parameters
 INITIAL_PRICE = 3000
@@ -12,15 +14,15 @@ FEE_RATE = 0.0005
 
 # Create liquidity providers with initial reserves and prices
 PRICE_RANGES = [
-    (2800, 3000),
-    (2500, 3500),
-    (1000, 5000),
+    (INITIAL_PRICE/1.5, INITIAL_PRICE*1.5),
+    (INITIAL_PRICE/2, INITIAL_PRICE*2),
+    (INITIAL_PRICE/3, INITIAL_PRICE*3),
 ]
 PORTFOLIO_VALUE = 100
-TIME = 24
+TIME = 24*7
 LAMBDA_PARAM = 222
 MU = 0.00005
-SIGMA = 0.0007
+SIGMA = 0.07
 
 
 
@@ -42,7 +44,7 @@ for _ in range(NUM_SIMULATIONS):
     pool = LiquidityPool(
         tick_space = 2,
         fee = 0.003,
-        tick_size = 1.001,
+        tick_size = 1.0001,
         initial_price = INITIAL_PRICE,
     )
 
@@ -63,36 +65,41 @@ for _ in range(NUM_SIMULATIONS):
         fees_collected[key].append(positions[idx].fees_withdraw)
 
 
-# Set the style and plot as originally planned
-sns.set_theme(style="whitegrid")
-fig, axes = plt.subplots(1, 2, figsize=(14, 10))
-fig.suptitle('Simulation Results', fontsize=16)
+# Set the ggplot style
+plt.style.use('fast')
+sns.set_palette("muted")
 
-# # Histogram of Prices
-# sns.histplot(prices, bins=50, kde=False, color='blue', ax=axes[0, 0])
-# axes[0, 0].set_title('Histogram of Prices')
-# axes[0, 0].set_xlabel('Prices')
-# axes[0, 0].set_ylabel('Frequency')
+# Create the first set of histograms
+fig, axes = plt.subplots(1, 2, figsize=(14, 10))
+fig.suptitle('Simulation Results', fontsize=18, weight='bold')
 
 # Histogram of Impermanent Losses
-sns.histplot(impermanent_losses, bins=100, kde=True, ax=axes[0])
-axes[0].set_title('Impermanent loss distribution')
-axes[0].set_xlabel('Prices')
+sns.histplot(impermanent_losses, bins=100, kde=True, color='darkblue', ax=axes[0], alpha=0.7)
+axes[0].set_title('Impermanent Loss Distribution', fontsize=14)
+axes[0].set_xlabel('Prices', fontsize=12)
+axes[0].set_ylabel('Frequency', fontsize=12)
 
-# Histograms of fees collected, and total returns
-sns.histplot(fees_collected, bins=100, kde=False, ax=axes[1])
-axes[1].set_title('Fees distribution')
-axes[1].set_xlabel('Fees Collected')
+# Histogram of Fees Collected
+sns.histplot(fees_collected, bins=100, kde=False, color='darkgreen', ax=axes[1], alpha=0.7)
+axes[1].set_title('Fees Distribution', fontsize=14)
+axes[1].set_xlabel('Fees Collected', fontsize=12)
+axes[1].set_ylabel('Frequency', fontsize=12)
 
+# Adjust layout for better spacing
 plt.tight_layout(rect=(0, 0, 1, 0.96))
+
+# Save the first figure with high resolution
 plt.savefig(f'figures/il_taxes_T={TIME}_sigma={SIGMA}_mu={MU}.png', dpi=300)
 plt.show()
 
+# Plot Total Return Distribution
 fig, axes = plt.subplots(1, 1, figsize=(14, 10))
-sns.histplot(total_return, bins=100, kde=True, ax=axes)
-axes.set_title('Total Return distribution')
-axes.set_xlabel('Total return')
+sns.histplot(total_return, bins=100, kde=False, color='purple', ax=axes, alpha=0.7)
+axes.set_title('Total Return Distribution', fontsize=14)
+axes.set_xlabel('Total Return', fontsize=12)
+axes.set_ylabel('Frequency', fontsize=12)
 
+# Adjust layout and save the second figure
 plt.tight_layout(rect=(0, 0, 1, 0.96))
 plt.savefig(f'figures/results_T={TIME}_sigma={SIGMA}_mu={MU}.png', dpi=300)
 plt.show()
