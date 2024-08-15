@@ -72,20 +72,6 @@ Fees accumulated during price updates can be collected using the collect_taxes m
 position.collect_taxes(fees_received=np.array([10.0, 5.0]))
 ```
 
-### 6. Additional Utilities
-The library also includes utilities for converting between prices and ticks, initializing ticks, and calculating liquidity at specific ticks. These can be used for more advanced operations within the liquidity pool:
-
-```python
-# Convert price to tick
-tick = pool._price_to_tick(price=3000)
-
-# Convert tick to price
-price = pool._tick_to_price(tick=100)
-
-# Get liquidity at a specific tick
-liquidity_at_tick = pool._get_tick_liquidity(tick=120)
-```
-
 
 ## Potential applications
 
