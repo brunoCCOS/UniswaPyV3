@@ -83,7 +83,7 @@ position.collect_taxes(fees_received=np.array([10.0, 5.0]))
 
 - Compare different strategies of provisioning
 
-- Analyze the effects of multilpe fee's levels and the impacts caused by
+- Analyze the effects of multilpe fee's levels and their impacts
 
 
 ## Contributions
@@ -102,7 +102,7 @@ Possible contributions are the following
 
 ## Credits and Disclaimers
 
-This library is being developed in order to support current academic research going on at the Universidade Federal do Rio de Janeiro (UFRJ). The main purpose of the library will be to provide the necessary tools for research. That being said, it would be of immense pleasure if this library also evolved into something useful for the hole community.
+This library is being developed in order to support current academic research going on at the Universidade Federal do Rio de Janeiro (UFRJ). The main purpose of the library will be to provide the necessary tools for research. That being said, it would be of immense pleasure if this library also evolved into something useful for the whole community.
 <!-- ### Citing
 
 ```
