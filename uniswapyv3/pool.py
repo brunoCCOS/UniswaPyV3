@@ -2,7 +2,6 @@ from matplotlib.pyplot import tick_params
 import numpy as np
 from .position import LiquidityPosition
 from .utils import smallest_divisor
-import warnings
 
 class LiquidityPool:
     """
@@ -51,10 +50,10 @@ class LiquidityPool:
             liquidity=liquidity,
             pool=self
         )
-        self.add_position(position)
+        self._add_position(position)
         return position
 
-    def add_position(self, position: LiquidityPosition):
+    def _add_position(self, position: LiquidityPosition):
         """
         Adds a new liquidity provider to the pool.
 
@@ -98,13 +97,13 @@ class LiquidityPool:
                 future_price = self._tick_to_sqrt_price(current_tick)
                 delta: float = tick_liquidity * (1 / future_price - 1 / current_sqrt_price)
                 self.current_tick = current_tick = current_tick - self.tick_space
-                fees_paid = np.array([delta / (1 - self.fee),0])
+                fees_paid = np.array([delta * self.fee,0])
             else:
                 # Amount of virtual token Y received for the price going from the current price to the right tick of the interval
                 self.current_tick = current_tick = current_tick + self.tick_space
                 future_price = self._tick_to_sqrt_price(current_tick)
                 delta: float = tick_liquidity * (future_price - current_sqrt_price)
-                fees_paid = np.array([0,delta / (1 - self.fee)])
+                fees_paid = np.array([0,delta * self.fee])
 
 
             self._distribute_fees(tick, fees_paid, tick_liquidity)
