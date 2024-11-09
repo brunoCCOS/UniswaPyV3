@@ -86,21 +86,6 @@ position.collect_taxes(fees_received=np.array([10.0, 5.0]))
 
 - Analyze the effects of multilpe fee's levels and their impacts
 
-
-## Contributions
-
-Possible contributions are the following
-
-- Implement operations to buy and sell specific ammounts of tokens ( only available way to change the pool is by setting a new price and letting the pool adjust accordingly )
-
-- Cleanup and optimization of the code, e.g, changing tick calculation directly to use the sqrt of tick_size instead of powering the price every time
-
-- Add more trackalbe informations to the pool and the position class
-
-- New features like token naming, liquidity shares calculations, modifying price ranges on the fly, etc ...
-
-- Develop tests and documentation
-
 ## Credits and Disclaimers
 
 This library is being developed in order to support current academic research going on at the Universidade Federal do Rio de Janeiro (UFRJ). The main purpose of the library will be to provide the necessary tools for research. That being said, it would be of immense pleasure if this library also evolved into something useful for the whole community.
