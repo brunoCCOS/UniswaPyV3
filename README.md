@@ -2,6 +2,7 @@
 
 A small library for emulating a UniswapV3 liquidity pool and liquidity positions in it.
 
+![image](docs/logo.png)
 
 ## Code
 
