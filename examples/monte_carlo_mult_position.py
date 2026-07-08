@@ -1,9 +1,12 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from uniswapyv3.utils import generate_poisson_arrivals
 from uniswapyv3.pool import LiquidityPool
 import itertools
+
+os.makedirs('figures', exist_ok=True)
 
 
 NUM_SIMULATIONS = 2000

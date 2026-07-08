@@ -23,6 +23,10 @@ class LiquidityPool:
         self.lower_tick: int = self._price_to_tick(initial_price / 2)
         self.upper_tick: int = self._price_to_tick(initial_price * 2)  # Tracks the min and max ticks currently available in the pool
         self.ticks_liquidity: np.ndarray = np.zeros((self.upper_tick - self.lower_tick) // self.tick_space + 1)  # Array to store liquidity at each tick
+        # Cumulative fees earned per unit of liquidity in each tick's band, for
+        # tokens (X, Y). Positions read this lazily instead of being pushed fees
+        # on every tick crossing (see LiquidityPosition._accrue_fees).
+        self.fee_growth: np.ndarray = np.zeros((self.ticks_liquidity.shape[0], 2))
         self.sqrt_price: float = np.sqrt(initial_price)  # Current price level in the pool
         self.current_tick: int = self._price_to_tick(self.sqrt_price**2)  # Current tick in the pool
         self.liquidity:float = 0
@@ -34,6 +38,20 @@ class LiquidityPool:
     @staticmethod
     def _calc_delta_y(liquidity: float, current_price: float, future_price: float) -> float:
         return liquidity * (current_price - future_price)
+
+    def _fee_amount(self, volume: float, token_index: int) -> np.ndarray:
+        """
+        Builds the fee vector charged on a traded volume.
+
+        `volume` is the net (post-fee) amount of the input token that flowed
+        through a tick. Fees are taken on the gross input, so the fee equals
+        volume * fee / (1 - fee). The result is placed in `token_index`
+        (0 for token X, 1 for token Y).
+        """
+        fee = abs(volume) * self.fee / (1 - self.fee)
+        fees = np.zeros(2)
+        fees[token_index] = fee
+        return fees
 
     @staticmethod
     def _calc_future_price(liquidity: float, current_price: float, tokens: float) -> float:
@@ -158,54 +176,56 @@ class LiquidityPool:
         """
         new_tick = self._price_to_tick(new_price)
 
-        # Check if any tick until the final price has any liqudity 
-        # and is possible to complete the trade
-        if any(self.ticks_liquidity[self._get_index_tick(self.current_tick):self._get_index_tick(new_tick)]) == 0:
+        # The target tick must lie inside the currently tracked tick range,
+        # otherwise the swap would walk off the end of the liquidity array.
+        if not (self.lower_tick <= new_tick <= self.upper_tick):
+            print("Not enough resources to fullfill the trade")
+            print("The desired price is outside the range with liquidity")
+            return
+
+        # Check that every tick between the current price and the target has
+        # liquidity; a gap means the trade cannot be completed.
+        lo_idx = self._get_tick_index(min(self.current_tick, new_tick))
+        hi_idx = self._get_tick_index(max(self.current_tick, new_tick))
+        if np.any(self.ticks_liquidity[lo_idx:hi_idx + 1] == 0):
             print("Not enough resources to fullfill the trade")
             print("One of the ticks betwen the current price and the desired spot are wihtout liquidity")
             return
 
         current_sqrt_price = self.sqrt_price
-        current_tick = self.current_tick
+        target_sqrt_price = np.sqrt(new_price)
+        direction = 1 if new_price > current_sqrt_price ** 2 else -1
+        fee_factor = self.fee / (1 - self.fee)
 
-        direction = 1 if new_price > current_sqrt_price**2 else -1
+        # Every band between the current and target ticks is (partially) crossed.
+        # The fee earned per unit of liquidity in a band is
+        #     fee/(1-fee) * (sqrt-price width traversed in that band),
+        # because the tick's liquidity cancels between the fee (~L*width) and
+        # the per-liquidity normalisation. This lets us update all crossed
+        # bands with vectorised numpy operations instead of a Python loop.
+        low_tick = min(self.current_tick, new_tick)
+        high_tick = max(self.current_tick, new_tick)
+        band_ticks = np.arange(low_tick, high_tick + self.tick_space, self.tick_space)
+        indices = (band_ticks - self.lower_tick) // self.tick_space
 
-        # Iterate through relevant ticks to update fees and trigger provider actions
-        for tick in range(current_tick, new_tick, direction * self.tick_space):
+        lower_edges = self.sqrt_tick_size ** band_ticks
+        upper_edges = self.sqrt_tick_size ** (band_ticks + self.tick_space)
 
-            tick_idx: int = self._get_tick_index(tick)
-            tick_liquidity: float = self.ticks_liquidity[tick_idx]
-            
-            if direction == -1:
-                # Amount of virtual token X received for the price going from the current price to the left tick of the interval
-                future_price = self._tick_to_sqrt_price(current_tick)
-                delta: float = -self._calc_delta_x(tick_liquidity,future_price,current_sqrt_price)
-                self.current_tick = current_tick = current_tick - self.tick_space
-                fees_paid = np.array([delta / (delta*(1-self.fee)),0])
-            else:
-                # Amount of virtual token Y received for the price going from the current price to the right tick of the interval
-                self.current_tick = current_tick = current_tick + self.tick_space
-                future_price = self._tick_to_sqrt_price(current_tick)
-                delta: float = -self._calc_delta_y(tick_liquidity,future_price,current_sqrt_price)
-                fees_paid = np.array([0,delta / (delta*(1-self.fee))])
+        lo_price = min(current_sqrt_price, target_sqrt_price)
+        hi_price = max(current_sqrt_price, target_sqrt_price)
+        seg_lo = np.maximum(lower_edges, lo_price)
+        seg_hi = np.minimum(upper_edges, hi_price)
+        mask = seg_hi > seg_lo  # bands actually traversed
 
-
-            self._distribute_fees(tick, fees_paid, tick_liquidity)
-            current_sqrt_price = future_price
-
-        current_idx: int = self._get_tick_index(current_tick)
-        tick_liquidity: float = self.ticks_liquidity[current_idx]
-        future_price = np.sqrt(new_price)
-
-        if direction == -1:
-            delta: float = self._calc_delta_y(tick_liquidity,future_price,current_sqrt_price)
-            fees_paid = np.array([delta / (1 - self.fee),0])
+        if direction == 1:
+            # Price up: swappers pay token Y; fee growth ~ width in sqrt-price.
+            self.fee_growth[indices[mask], 1] += fee_factor * (seg_hi[mask] - seg_lo[mask])
         else:
-            delta: float = self._calc_delta_x(tick_liquidity,future_price,current_sqrt_price)
-            fees_paid = np.array([0,delta / (1 - self.fee)])
+            # Price down: swappers pay token X; fee growth ~ width in 1/sqrt-price.
+            self.fee_growth[indices[mask], 0] += fee_factor * (1.0 / seg_lo[mask] - 1.0 / seg_hi[mask])
 
-        self._distribute_fees(self.current_tick, fees_paid, tick_liquidity)
-        self.sqrt_price = future_price
+        self.current_tick = new_tick
+        self.sqrt_price = target_sqrt_price
 
 
 
@@ -252,12 +272,18 @@ class LiquidityPool:
         lower_tick: int = self._price_to_tick(lower_price)
         upper_tick: int = self._price_to_tick(upper_price)
 
-        # Extend the ticks_liquidity array to accommodate new ticks if necessary
+        # Extend the ticks_liquidity array to accommodate new ticks if necessary.
+        # fee_growth is grown in lockstep so a tick's index maps to the same
+        # entry in both arrays.
         if upper_tick > self.upper_tick:
-            self.ticks_liquidity = np.append(self.ticks_liquidity, np.zeros((upper_tick - self.upper_tick) // self.tick_space))
+            pad = (upper_tick - self.upper_tick) // self.tick_space
+            self.ticks_liquidity = np.append(self.ticks_liquidity, np.zeros(pad))
+            self.fee_growth = np.vstack([self.fee_growth, np.zeros((pad, 2))])
             self.upper_tick = upper_tick
         if lower_tick < self.lower_tick:
-            self.ticks_liquidity = np.append(np.zeros((self.lower_tick - lower_tick) // self.tick_space), self.ticks_liquidity)
+            pad = (self.lower_tick - lower_tick) // self.tick_space
+            self.ticks_liquidity = np.append(np.zeros(pad), self.ticks_liquidity)
+            self.fee_growth = np.vstack([np.zeros((pad, 2)), self.fee_growth])
             self.lower_tick = lower_tick
 
         return lower_tick, upper_tick

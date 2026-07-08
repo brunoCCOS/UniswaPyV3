@@ -52,12 +52,44 @@ class LiquidityPosition:
         self.max_tick: int = max_tick
         self._set_tick_range()
         self.liquidity: float = liquidity
+        self._fees: np.ndarray = np.array([0.0,0.0])
+        self.fees_withdraw: float = 0.0
+        self.il: float = 0.0
+        # Snapshot of the pool's fee growth over this position's tick range at
+        # the last accrual; used to pull owed fees lazily.
+        self._fee_checkpoint: np.ndarray | None = None
+        self._accrue_fees()
         self.update_reserves()
         self.initial_x: float = self.x
         self.initial_y: float = self.y
-        self.fees: np.ndarray = np.array([0.0,0.0])
-        self.fees_withdraw: float = 0.0
-        self.il: float = 0.0
+
+    @property
+    def fees(self) -> np.ndarray:
+        """Accrued fees (X, Y), pulled up to date from the pool on access."""
+        self._accrue_fees()
+        return self._fees
+
+    @fees.setter
+    def fees(self, value: np.ndarray):
+        self._fees = value
+
+    def _accrue_fees(self):
+        """
+        Pull fees owed since the last accrual from the pool's fee-growth
+        accumulator. A position earns, in each tick of its range, its share of
+        that tick's fees (liquidity * fee_growth_delta). Summing over the range
+        is equivalent to the old per-tick, per-provider distribution but avoids
+        iterating over every provider on every tick crossing.
+        """
+        lo = self.pool._get_tick_index(self.min_tick)
+        hi = self.pool._get_tick_index(self.max_tick)
+        current = self.pool.fee_growth[lo:hi + 1]
+        if self._fee_checkpoint is None or self._fee_checkpoint.shape != current.shape:
+            self._fee_checkpoint = current.copy()
+            return
+        self._fees = self._fees + self.liquidity * (current - self._fee_checkpoint).sum(axis=0)
+        self._fee_checkpoint = current.copy()
+
     def update_reserves(self):
         """
         Update the reserves of token X and Y based on the new price in the pool.
